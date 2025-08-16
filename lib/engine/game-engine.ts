@@ -7,10 +7,11 @@ import { Player } from "./player"
 import { Spawner } from "./spawner"
 import { EffectsManager } from "./effects"
 import { GameState } from "./state"
+import { PerformanceMonitor } from "./performance-monitor"
 
 export class GameEngine {
   private loop: GameLoop
-  private input: InputManager
+  private inputManager: InputManager // Renamed from 'input' to 'inputManager' to avoid conflict
   private renderer: Renderer
   private audio: AudioEngine
   private world: World
@@ -18,25 +19,27 @@ export class GameEngine {
   private spawner: Spawner
   private effects: EffectsManager
   private state: GameState
+  private perfMonitor: PerformanceMonitor
 
   public onStateUpdate?: (state: any) => void
+  public onPerformanceUpdate?: (stats: any) => void
 
   constructor(canvas: HTMLCanvasElement, isDailyMode = false) {
     // Initialize core systems
     this.state = new GameState(isDailyMode)
-    this.input = new InputManager()
+    this.inputManager = new InputManager() // Updated property name
     this.renderer = new Renderer(canvas)
     this.audio = new AudioEngine()
     this.world = new World()
     this.player = new Player()
     this.spawner = new Spawner(isDailyMode)
     this.effects = new EffectsManager()
+    this.perfMonitor = new PerformanceMonitor()
 
-    // Initialize game loop
     this.loop = new GameLoop(this.update.bind(this), this.render.bind(this))
 
     // Set up input handling
-    this.input.onAction = this.handleInput.bind(this)
+    this.inputManager.onAction = this.handleInput.bind(this) // Updated property name
 
     console.log("[v0] Game engine initialized")
   }
@@ -75,7 +78,20 @@ export class GameEngine {
   }
 
   input(action: string) {
-    this.input.handleAction(action)
+    this.inputManager.handleAction(action) // Made input method public and ensured it properly delegates to inputManager
+  }
+
+  getPerformanceStats() {
+    const rendererStats = this.renderer.getPerformanceStats()
+    const perfStats = this.perfMonitor.getStats()
+    const particleCount = this.effects.getParticleCount ? this.effects.getParticleCount() : 0
+
+    return {
+      ...rendererStats,
+      ...perfStats,
+      particleCount,
+      devicePixelRatio: window.devicePixelRatio || 1,
+    }
   }
 
   private handleInput(action: string) {
@@ -105,10 +121,16 @@ export class GameEngine {
   private update(deltaTime: number) {
     if (this.state.scene !== "PLAY") return
 
+    this.perfMonitor.startUpdate()
+
+    const dtSec = deltaTime / 1000
+
+    this.inputManager.update(deltaTime) // Updated property name
+
     // Update game systems
     this.world.update(deltaTime)
-    this.player.update(deltaTime, this.world)
-    this.spawner.update(deltaTime, this.world)
+    this.player.update(dtSec, this.world) // Player expects seconds
+    this.spawner.update(dtSec, this.world) // Spawner expects seconds
     this.effects.update(deltaTime)
 
     // Check collisions
@@ -125,11 +147,12 @@ export class GameEngine {
       }
     }
 
-    // Update score
-    this.state.score += Math.floor(this.world.speed * deltaTime * 0.08)
+    this.state.score += Math.floor(this.world.speed * dtSec * 0.08)
 
     // Update power-ups
     this.updatePowerUps(deltaTime)
+
+    this.perfMonitor.endUpdate()
 
     // Notify UI of state changes
     if (this.onStateUpdate) {
@@ -142,9 +165,16 @@ export class GameEngine {
         powerUps: this.state.powerUps,
       })
     }
+
+    if (this.onPerformanceUpdate) {
+      this.onPerformanceUpdate(this.getPerformanceStats())
+    }
   }
 
   private render() {
+    this.perfMonitor.startDraw()
+    this.renderer.startFrame()
+
     this.renderer.clear()
 
     // Render background
@@ -156,6 +186,7 @@ export class GameEngine {
     this.effects.render(this.renderer)
 
     this.renderer.present()
+    this.perfMonitor.endDraw()
   }
 
   private checkCollisions(obstacles: any[]): boolean {

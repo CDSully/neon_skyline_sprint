@@ -1,68 +1,76 @@
-export class GameLoop {
-  private animationId: number | null = null
-  private lastTime = 0
-  private accumulator = 0
-  private readonly FIXED_STEP = 1000 / 60 // 16.67ms
-  private readonly MAX_STEPS = 5
-  private running = false
+const STEP_MS = 1000 / 60
+const STEP_S = STEP_MS / 1000
+let raf = 0
+let running = false
+let last = 0
+let acc = 0
+const MAX_ACC_MS = 200
 
-  constructor(
-    private updateFn: (deltaTime: number) => void,
-    private renderFn: () => void,
-  ) {}
+export function start(update: (dtSec: number) => void, draw: (alpha: number) => void) {
+  if (running) return
+  running = true
+  last = performance.now()
+  acc = 0
+  const frame = (now: number) => {
+    if (!running) return
+    let delta = now - last
+    if (delta < 0 || delta > 1000) delta = STEP_MS // guard weird deltas
+    acc += Math.min(delta, MAX_ACC_MS) // clamp spikes (resume/tab switch)
+    last = now
+    while (acc >= STEP_MS) {
+      update(STEP_S) // ALWAYS seconds
+      acc -= STEP_MS
+    }
+    draw(acc / STEP_MS) // alpha in [0..1]
+    raf = requestAnimationFrame(frame)
+  }
+  raf = requestAnimationFrame(frame)
+}
+
+export function stop() {
+  if (!running) return
+  running = false
+  cancelAnimationFrame(raf)
+}
+
+export function onVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    last = performance.now()
+    acc = 0
+  }
+}
+
+// Set up visibility change listener
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", onVisibilityChange)
+}
+
+// Legacy GameLoop class for backward compatibility
+export class GameLoop {
+  private updateFn: (deltaTime: number) => void
+  private renderFn: () => void
+
+  constructor(updateFn: (deltaTime: number) => void, renderFn: () => void) {
+    this.updateFn = updateFn
+    this.renderFn = renderFn
+  }
 
   start() {
-    if (this.running) return
-
-    this.running = true
-    this.lastTime = performance.now()
-    this.accumulator = 0
-    this.tick()
+    start(
+      (dtSec) => this.updateFn(dtSec * 1000), // Convert back to ms for legacy compatibility
+      () => this.renderFn(),
+    )
   }
 
   pause() {
-    this.running = false
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId)
-      this.animationId = null
-    }
+    stop()
   }
 
   resume() {
-    if (this.running) return
-
-    this.running = true
-    this.lastTime = performance.now()
-    this.accumulator = 0
-    this.tick()
+    this.start()
   }
 
   stop() {
-    this.pause()
-  }
-
-  private tick = () => {
-    if (!this.running) return
-
-    const currentTime = performance.now()
-    let deltaTime = currentTime - this.lastTime
-    this.lastTime = currentTime
-
-    // Clamp delta time to prevent spiral of death
-    deltaTime = Math.min(deltaTime, 200)
-    this.accumulator += deltaTime
-
-    // Fixed timestep updates
-    let steps = 0
-    while (this.accumulator >= this.FIXED_STEP && steps < this.MAX_STEPS) {
-      this.updateFn(this.FIXED_STEP)
-      this.accumulator -= this.FIXED_STEP
-      steps++
-    }
-
-    // Render
-    this.renderFn()
-
-    this.animationId = requestAnimationFrame(this.tick)
+    stop()
   }
 }

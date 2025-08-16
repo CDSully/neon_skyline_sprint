@@ -11,6 +11,8 @@ export class Player {
   private laneSwitchTime = 0
   private targetLane = 1
 
+  private startInvulnUntil = 0
+
   private readonly gravity = 32.9
   private readonly jumpHeight = 3.8
   private readonly apexTime = 0.48
@@ -18,11 +20,11 @@ export class Player {
   private readonly laneSwitchDuration = 100
 
   update(deltaTime: number, world: any) {
-    const dt = deltaTime / 1000
+    const dtSec = deltaTime // Already in seconds from new loop system
 
     // Update lane switching
     if (this.laneSwitchTime > 0) {
-      this.laneSwitchTime -= deltaTime
+      this.laneSwitchTime -= deltaTime * 1000 // Convert to ms for internal timing
       const progress = 1 - this.laneSwitchTime / this.laneSwitchDuration
       const eased = this.easeInOutCubic(Math.min(1, progress))
       this.x = this.lerp(world.getLaneX(this.lane), world.getLaneX(this.targetLane), eased)
@@ -37,7 +39,7 @@ export class Player {
     switch (this.state) {
       case "JUMP_ASCENT":
       case "JUMP_DESCENT":
-        this.jumpTime += deltaTime
+        this.jumpTime += deltaTime * 1000 // Convert to ms for internal timing
         this.y = this.calculateJumpHeight(this.jumpTime)
         this.verticalVel = this.calculateJumpVelocity(this.jumpTime)
 
@@ -51,14 +53,14 @@ export class Player {
         break
 
       case "SLIDE":
-        this.slideTime -= deltaTime
+        this.slideTime -= deltaTime * 1000 // Convert to ms for internal timing
         if (this.slideTime <= 0) {
           this.state = "RUN"
         }
         break
 
       case "HIT_INVULN":
-        this.invulnTime -= deltaTime
+        this.invulnTime -= deltaTime * 1000 // Convert to ms for internal timing
         if (this.invulnTime <= 0) {
           this.state = "RUN"
         }
@@ -96,13 +98,18 @@ export class Player {
     this.invulnTime = duration
   }
 
+  setStartInvulnerable() {
+    this.startInvulnUntil = performance.now() + 1500 // 1500ms start invulnerability
+  }
+
   isInvulnerable(): boolean {
-    return this.state === "HIT_INVULN"
+    const now = performance.now()
+    return this.state === "HIT_INVULN" || now < this.startInvulnUntil
   }
 
   getBounds() {
     const width = this.state === "SLIDE" ? 0.8 : 0.6
-    const height = this.state === "SLIDE" ? 0.4 : 1.0
+    const height = this.state === "SLIDE" ? 0.65 : 1.0 // Was 0.4, now 0.65 (35% reduction from 1.0)
 
     return {
       left: this.x - width / 2,
@@ -125,7 +132,7 @@ export class Player {
 
     // Player color based on state
     let color = "#3BE4FF" // Cyan
-    if (this.state === "HIT_INVULN") {
+    if (this.state === "HIT_INVULN" || performance.now() < this.startInvulnUntil) {
       color = this.invulnTime % 200 < 100 ? "#3BE4FF" : "#FF4DA6" // Flashing
     } else if (this.state === "SLIDE") {
       color = "#7A5CFF" // Purple
@@ -148,6 +155,7 @@ export class Player {
     this.invulnTime = 0
     this.laneSwitchTime = 0
     this.targetLane = 1
+    this.setStartInvulnerable()
   }
 
   private calculateJumpHeight(time: number): number {

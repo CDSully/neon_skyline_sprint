@@ -42,6 +42,10 @@ export class EffectsManager {
     }
   }
 
+  getParticleCount(): number {
+    return this.particles.length
+  }
+
   render(renderer: any) {
     const ctx = renderer.ctx
     if (!ctx) return

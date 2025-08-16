@@ -33,6 +33,12 @@ export default function PlayPage() {
   const [showTutorial, setShowTutorial] = useState(false)
   const [showPerfOverlay, setShowPerfOverlay] = useState(false)
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("dev=1")) {
+      setShowPerfOverlay(true)
+    }
+  }, [])
+
   // Initialize game engine
   useEffect(() => {
     if (!canvasRef.current) return
@@ -168,8 +174,7 @@ export default function PlayPage() {
         />
       )}
 
-      {/* Performance overlay */}
-      {showPerfOverlay && <PerfOverlay />}
+      {showPerfOverlay && <PerfOverlay gameEngine={engineRef.current} />}
     </div>
   )
 }
