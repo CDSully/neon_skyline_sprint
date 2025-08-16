@@ -1,0 +1,25 @@
+{
+  "name": "Neon Skyline Sprint",
+  "short_name": "Neon Sprint",
+  "description": "A polished, high-FPS endless runner in a neon 2.5D skyline",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F1014",
+  "theme_color": "#3BE4FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMEYxMDE0Ii8+CjxyZWN0IHg9IjQ4IiB5PSI0OCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjM0JFNEZGIiByeD0iMTIiLz4KPHN2Zz4K",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMEYxMDE0Ii8+CjxyZWN0IHg9IjEyOCIgeT0iMTI4IiB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iIzNCRTRGRiIgcng9IjMyIi8+Cjwvc3ZnPgo=",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "dir": "ltr"
+}
